@@ -1,0 +1,173 @@
+---
+title: "Lab2"
+author: "Patrycja Piła"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: 
+      collapsed: true  
+      smooth_scroll: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,warning = FALSE,message = FALSE)
+```
+
+## Dane
+
+```{r}
+dane <- readxl::read_excel("dane_do analizy.xlsx", sheet = "Arkusz1")
+colnames(dane)
+dane$`M3. Poziom wykształcenia` <- factor(dane$`M3. Poziom wykształcenia`, 
+                                          levels = c("1. Podstawowe (szkoła podstawowa, gimnazjum)", "2. Zawodowe", "3. Średnie", "4. Wyższe zawodowe (licencjat)", "5. Wyższe (magisterium lub wyżej)"),
+                                          ordered = TRUE)
+```
+
+## Testy
+
+### Test niezależności chi-kwadrat
+
+Test niezależności χ2 wykonuje się w celu zbadania związku pomiędzy dwoma zmiennymi nominalnymi X i Y. 
+
+Test chi-kwadrat ocenia zależność między dwiema zmiennymi kategorycznymi poprzez porównanie obserwowanych i oczekiwanych częstości. Im większa wartość statystyki chi-kwadrat, tym większa różnica między zmiennymi.
+
+Test V Cramera jest miarą siły związku między zmiennymi kategorycznymi, przyjmując wartości od 0 (brak związku) do 1 (pełna zależność).
+
+**Hipotezy**:
+
+$$
+H_0: \text{Zmienne są niezależne.} \\
+H_A: \text{Zmienne nie są niezależne.}
+$$
+
+**Założenia**:
+
+* Dane są w postaci tabeli kontyngencji.
+
+* Test chi-kwadrat jest testem przybliżonym (podobnie jak test z dla średnich lub proporcji), wymaga więc – poza standardowym założeniem losowości i reprezentatywności próby – odpowiedniej wielkości próby. Najczęściej podaje się regułę, że minimalna liczebność oczekiwana w pojedynczej komórce wynosi 5.
+
+Test χ2 bazuje na porównaniu ze sobą wartości obserwowanych (otrzymanych w badaniu) a wartości teoretycznych (obliczonych przy założeniu, że pomiędzy zmiennymi nie ma żadnego związku). Duże różnice wskazują na istnienie zależności pomiędzy zmiennymi.
+
+#### Kod w R:
+
+**chisq.test()**
+* Biblioteka: stats (wbudowana w R)
+* Parametry:
+  - x: tabela kontyngencji lub wektory zmiennych.
+
+
+
+```{r}
+tablica <- table(dane$`M3. Poziom wykształcenia`, dane$`M5. Sytuacja zawodowa`)
+test_chi2 <- chisq.test(tablica)
+
+# Wyniki testu
+print(test_chi2)
+
+cramer_v <- function(x) {
+  sqrt(chisq.test(x)$statistic / (nrow(x) * (min(dim(x)) - 1)))
+}
+
+
+# Oblicz V Cramera
+v_cramer <- cramer_v(tablica)
+cat("V Cramera:", round(v_cramer, 3))
+```
+
+### Testy zgodności z rozkładem normalnym
+
+#### Test Shapiro-Wilka
+
+**Hipotezy**:
+
+Test Shapiro-Wilko jest uznawany za najlepszy test do sprawdzenia normalności rozkładu zmiennej losowej. Głównym atutem tego testu jest jego duża moc.
+
+$$
+H_0: \text{Rozkład badanej cechy jest rozkładem normalnym} \\
+H_A: \text{Rozkład badanej cechy nie jest rozkładem normalnym}
+$$
+
+**Założenia**:
+
+Test ten powinno stosować się przy mniejszych próbach, choć istnieje rozbieżność dotycząca granicy oddzielające małą próbę od dużej. Jako jedną z granic podaje się N > 100 (Bedyńska, Cypryańska, 2012), choć symulacje komputerowe (Razali, Yap, 2011) wskazują że test Shapiro-Wilka jest lepszy (ma większą moc) do prób o wielkości rzędu 2000. 
+
+#### Kod w R:
+
+**shapiro.test()**
+* Biblioteka: stats (wbudowana w R)
+* Parametry:
+  - x: wektor danych numerycznych.
+
+```{r}
+shapiro_test <- shapiro.test(dane$`M1. Wiek`)
+print(shapiro_test)
+```
+
+#### Test Kołmogorowa-Smirnowa
+
+Test Kołmogorowa-Smirnowa, dla jednej próby, do oceny zgodności rozkładu z rozkładem normalnym wykorzystuje maksymalną wartość różnicy między dystrybuantą z próby, a założoną dystrybuantą. Jeżeli wartość prawdopodobieństwa testowego jest mniejsza od przyjętego poziomu istotności, to hipotezę, że badany rozkład jest zgodny z normalnym należy odrzucić
+
+**Hipotezy**:
+
+$$
+H_0: \text{Rozkład badanej cechy jest rozkładem normalnym} \\
+H_A: \text{Rozkład badanej cechy nie jest rozkładem normalnym}
+$$
+
+**Założenia**:
+
+* Może być stosowany do dużych próbek.
+* Wrażliwy na wartości odstające.
+
+#### Kod w R:
+
+**ks.test()**
+* Biblioteka: stats (wbudowana w R)
+* Parametry:
+  - x: dane numeryczne.
+  - y: rozkład teoretyczny (np. "pnorm" dla normalnego).
+  - mean, sd: parametry rozkładu teoretycznego (np. średnia i odchyleń standardowych).
+
+
+```{r}
+ks_test <- ks.test(dane$`M1. Wiek`, "pnorm", mean = mean(dane$`M1. Wiek`), 
+                   sd = sd(dane$`M1. Wiek`))
+print(ks_test)
+```
+
+
+## Test Kołmogorowa-Smirnowa dla dwóch rozkładów
+
+Test Kołmogorowa-Smirnowa dla dwóch rozkładów pozwala na ocenę, czy dwie próbki pochodzą z tej samej populacji pod względem ich rozkładu. Test opiera się na największej różnicy między dystrybuantami empirycznymi dwóch próbek.
+
+**Hipoteza**:
+
+$$
+H_0: \text{Oba rozkłady są takie same.} \\
+H_A: \text{Oba rozkłady różnią się.}
+$$
+
+**Założenia**:
+
+* Dane powinny być na skali porządkowej lub wyższej.
+
+W przypadku małych próbek może mieć ograniczoną moc.
+
+#### Kod w R:
+
+**ks.test**
+* Biblioteka: stats (wbudowana w R)
+* Parametry:
+  
+  - x: dane numeryczne.
+  - y: druga próbka.
+
+
+```{r}
+ks_two_samples <- ks.test(dane$`M1. Wiek`[dane$`M2. Płeć` == "1. Mężczyzna"], 
+                          dane$`M1. Wiek`[dane$`M2. Płeć` == "2. Kobieta"])
+print(ks_two_samples)
+```
+
