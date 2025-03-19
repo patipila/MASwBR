@@ -1,6 +1,6 @@
 ---
 title: "Lab2"
-author: "Patrycja Piła"
+author: "Grupa 2"
 date: "`r Sys.Date()`"
 output: 
   html_document:
@@ -54,6 +54,7 @@ Test χ2 bazuje na porównaniu ze sobą wartości obserwowanych (otrzymanych w b
 #### Kod w R:
 
 **chisq.test()**
+
 * Biblioteka: stats (wbudowana w R)
 * Parametry:
   - x: tabela kontyngencji lub wektory zmiennych.
@@ -97,6 +98,7 @@ Test ten powinno stosować się przy mniejszych próbach, choć istnieje rozbie�
 #### Kod w R:
 
 **shapiro.test()**
+
 * Biblioteka: stats (wbudowana w R)
 * Parametry:
   - x: wektor danych numerycznych.
@@ -125,6 +127,7 @@ $$
 #### Kod w R:
 
 **ks.test()**
+
 * Biblioteka: stats (wbudowana w R)
 * Parametry:
   - x: dane numeryczne.
@@ -159,6 +162,7 @@ W przypadku małych próbek może mieć ograniczoną moc.
 #### Kod w R:
 
 **ks.test**
+
 * Biblioteka: stats (wbudowana w R)
 * Parametry:
   
