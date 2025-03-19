@@ -13,13 +13,13 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE,warning = FALSE,message = FALSE)
+
 ```
 
 ## Dane
 
 ```{r}
 dane <- readxl::read_excel("dane_do analizy.xlsx", sheet = "Arkusz1")
-colnames(dane)
 dane$`M3. Poziom wykształcenia` <- factor(dane$`M3. Poziom wykształcenia`, 
                                           levels = c("1. Podstawowe (szkoła podstawowa, gimnazjum)", "2. Zawodowe", "3. Średnie", "4. Wyższe zawodowe (licencjat)", "5. Wyższe (magisterium lub wyżej)"),
                                           ordered = TRUE)
