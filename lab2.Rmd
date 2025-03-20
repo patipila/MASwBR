@@ -327,10 +327,8 @@ H1 :∃ i,j takie, z˙e μi ≠ μj
 
 #### Kod w R
 ```{r}
-library(readxl)
 library(FSA)
 
-dane <- read_excel("C:\\Users\\Julia\\Downloads\\dane_do analizy (2).xlsx")
 # Sprawdzenie struktury danych
 str(dane)
 
@@ -392,10 +390,6 @@ H1:∃i,j∈{1,…,k} Fi≠FjH1:∃i,j∈{1,…,k} Fi≠Fj (nie wszystkie próby
 
 #### Kod w R
 ```{r}
-library(readxl)
-library(FSA)
-
-dane <- read_excel("C:\\Users\\Julia\\Downloads\\dane_do analizy (2).xlsx")
 # Sprawdzenie struktury danych
 str(dane)
 
@@ -483,10 +477,6 @@ H1:F1≠F2H1:F1≠F2 (próby pochodzą z różnych populacji)
 
 #### Kod w R
 ```{r}
-library(readxl)
-library(FSA)
-
-dane <- read_excel("C:\\Users\\Julia\\Downloads\\dane_do analizy (2).xlsx")
 # Sprawdzenie struktury danych
 str(dane)
 
@@ -556,10 +546,6 @@ Test Tukeya to jeden z najczęściej używanych testów do porównywania par śr
 
 #### Kod w R
 ```{r}
-library(readxl)
-library(FSA)
-
-dane <- read_excel("C:\\Users\\Julia\\Downloads\\dane_do analizy (2).xlsx")
 # Sprawdzenie struktury danych
 str(dane)
 
@@ -601,3 +587,158 @@ TukeyHSD(anova_model, conf.level = 0.95)
 
 
 ** użyto wbudowanej funkcji aov() i TukeyHSD()**
+
+### Test równości proporcji
+
+Test dla dwóch proporcji stosujemy w sytuacjach, gdy mamy 2 niezależne próby o liczności n1 i n2, w których możemy uzyskać 2 możliwe wyniki badanej cechy (jeden z nich to wynik wyróżniony o liczności m1 - w pierwszej próbie i m2 - w drugiej próbie). Dla prób tych możemy wyznaczyć proporcje p1 i p2. Test ten służy do weryfikacji hipotezy, że wyróżnione proporcje są sobie równe. 
+
+**Hipotezy**:
+  
+- \( H_0: p_1 = p_2 \)
+- \( H_A: p_1 \neq p_2 \)
+
+
+**Założenia**:
+  
+* pomiar na skali nominalnej,
+
+* model niezależny,  
+
+* duża liczność. 
+
+#### Kod w R
+
+**prop.test**
+
+* Biblioteka: stats (wbudowana w R)
+* Parametry:
+  - x: wektor proporcji
+  - n: wektor liczby 
+  - alternative: ciąg znaków określający hipotezę alternatywną
+
+```{r}
+data_subset <- dane[, c("M2. Płeć", "P1. Częstotliwość podróży (dotyczy podróży z przynajmniej jednym noclegiem)")]
+
+table_data <- table(data_subset$`M2. Płeć`, data_subset$`P1. Częstotliwość podróży (dotyczy podróży z przynajmniej jednym noclegiem)`)
+
+n1 <- sum(table_data[1, ])  # liczba obserwacji dla pierwszej płci
+x1 <- table_data[1, 1]      # liczba podróżujących w pierwszej grupie
+n2 <- sum(table_data[2, ])  # liczba obserwacji dla drugiej płci
+x2 <- table_data[2, 1]      # liczba podróżujących w drugiej grupie
+
+phat1 <- x1 / n1
+phat2 <- x2 / n2
+
+
+alt <- "≠"
+alttext <- if (alt == ">") {"greater"} else if (alt == "<") {"less"} else {"two.sided"}
+
+
+test <- prop.test(c(x1, x2), c(n1, n2), alternative = alttext, correct = FALSE)
+```
+
+### Test istotności korelacji Pearsona, Spearmana, Kendalla 
+
+Test do sprawdzania istotności współczynnika korelacji liniowej **Pearsona** służy do weryfikacji hipotezy o braku zależności liniowej pomiędzy badanymi cechami populacji i opiera się na współczynniku korelacji liniowej Pearsona wyliczonym dla próby. Im wartość współczynnika rp jest bliższa 0, tym słabszą zależnością związane są badane cechy. 
+
+**Hipotezy**:
+  
+- \( H_0: R_p = 0 \)
+- \( H_A: R_p \neq 0 \)
+
+Gdzie:
+  
+- \( R_p \) – współczynnik korelacji Pearsona w populacji.
+
+**Założenia**:
+  
+* pomiar na skali interwałowej,
+
+* normalność rozkładu badanych cech w populacji lub normalność reszt modelu.
+
+#### Kod w R
+
+**cor.test**
+
+* Biblioteka: stats (wbudowana w R)
+* Parametry:
+  - x: dane 1
+  - y: dane 2
+  - method: ciąg znaków wskazujący, który współczynnik korelacji ma zostać użyty w teście
+  - alternative: ciąg znaków określający hipotezę alternatywną
+
+```{r}
+kolumna1 <- "Wiek"
+kolumna2 <- "3. Podróżuję, aby przeżyć przygodę"
+df_clean <- na.omit(dane[, c(kolumna1, kolumna2)])
+cor.test(df_clean[[kolumna1]], df_clean[[kolumna2]], method = "pearson")
+
+```
+
+Test do sprawdzania istotności współczynnika korelacji **Spearmana** służy do weryfikacji hipotezy o braku zależności pomiędzy badanymi cechami populacji i opiera się na współczynniku korelacji rangowej Spearmana wyliczonym dla próby. Im wartość współczynnika Spearmana rs jest bliższa 0, tym słabszą zależnością związane są badane cechy.  
+
+**Hipotezy**:
+  
+- \( H_0: R_s = 0 \)
+- \( H_A: R_s \neq 0 \)
+
+Gdzie:
+  
+- \( R_s \) – współczynnik korelacji Spearmana  w populacji.
+
+**Założenia**:
+  
+* pomiar na skali porządkowej lub interwałowej.
+
+#### Kod w R
+
+**cor.test**
+
+* Biblioteka: stats (wbudowana w R)
+* Parametry:
+  - x: dane 1
+  - y: dane 2
+  - method: ciąg znaków wskazujący, który współczynnik korelacji ma zostać użyty w teście
+  - alternative: ciąg znaków określający hipotezę alternatywną
+
+```{r}
+kolumna1 <- "Wiek"
+kolumna2 <- "10. Podróżuję, aby uczyć się i poszerzać swoją wiedzę"
+df_clean <- na.omit(dane[, c(kolumna1, kolumna2)])
+test <- cor.test(df_clean[[kolumna1]], df_clean[[kolumna2]], method = "spearman")
+```
+
+Test do sprawdzania istotności współczynnika korelacji **Kendalla** służy do weryfikacji hipotezy o braku zależności pomiędzy badanymi cechami populacji i opiera się na współczynniku korelacji Kendalla wyliczonym dla próby. Im wartość współczynnika jest bliższa 0, tym słabszą zależnością związane są badane cechy.   
+
+**Hipotezy**:
+  
+- \( H_0: t = 0 \)
+- \( H_A: t \neq 0 \)
+
+Gdzie:
+  
+- \( t \) – współczynnik korelacji Kendalla w populacji.
+
+**Założenia**:
+  
+* pomiar na skali porządkowej lub interwałowej,
+
+* małe próbki.
+
+#### Kod w R
+
+**cor.test**
+
+* Biblioteka: stats (wbudowana w R)
+* Parametry:
+  - x: dane 1
+  - y: dane 2
+  - method: ciąg znaków wskazujący, który współczynnik korelacji ma zostać użyty w teście
+  - alternative: ciąg znaków określający hipotezę alternatywną
+
+```{r}
+kolumna1 <- "Wiek"
+kolumna2 <- "10. Podróżuję, aby uczyć się i poszerzać swoją wiedzę"
+df_clean <- na.omit(dane[, c(kolumna1, kolumna2)])
+test <- cor.test(df_clean[[kolumna1]], df_clean[[kolumna2]], method = "kendall")
+```
