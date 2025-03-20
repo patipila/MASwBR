@@ -304,4 +304,300 @@ tt <- t.test(`M1. Wiek` ~ `M2. Płeć`, data = dane)
 tt
 ```
 
+### Test równości wielu średnich(analizą wariancji (ANOVA)) 
 
+Analiza wariancji (ANOVA) to test statystyczny służący do sprawdzania, czy istnieją istotne różnice między średnimi więcej niż dwóch grup. Jest stosowany, gdy chcemy ocenić wpływ jednego lub więcej czynników na zmienną zależną, a jego wynik wskazuje, czy co najmniej jedna grupa różni się istotnie od pozostałych. Jeśli ANOVA wykaże różnice, do identyfikacji konkretnych grup stosuje się testy post-hoc, np. test Tukeya. 
+
+
+**Hipotezy**:
+
+H0 :μ1 =μ2 =⋯=μk   
+
+H1 :∃ i,j takie, z˙e μi ≠ μj
+
+
+
+**Założenia**:
+
+-Normaloność rozkładu 
+
+-Jednorodność wariancji 
+
+-Niezależność obserwacji(brak zależności miedzy obserwacjami w każdej grupie) 
+
+#### Kod w R
+```{r}
+library(readxl)
+library(FSA)
+
+dane <- read_excel("C:\\Users\\Julia\\Downloads\\dane_do analizy (2).xlsx")
+# Sprawdzenie struktury danych
+str(dane)
+
+# Usunięcie nadmiarowych spacji i poprawienie nazwy kolumny
+colnames(dane)[colnames(dane) == "M4. Miejsce zamieszkania"] <- "Miejsce_zamieszkania"
+
+colnames(dane)[colnames(dane) == "M1. Wiek"] <- "Wiek"
+
+# Sprawdzamy teraz nazwy kolumn
+colnames(dane)
+
+# Przekształcenie zmiennej grupującej na factor
+dane$Miejsce_zamieszkania <- as.factor(dane$Miejsce_zamieszkania)
+
+# Usunięcie brakujących danych
+dane <- dane[!is.na(dane$Wiek) & !is.na(dane$Miejsce_zamieszkania), ]
+
+
+
+###Test równości wielu średnich
+# Wykonanie testu ANOVA (porównanie średnich w różnych grupach)
+anova_model <- aov(Wiek ~ Miejsce_zamieszkania, data = dane)
+
+# Wynik testu ANOVA
+summary(anova_model)
+
+
+#srednie w grupach sa istotne satystycznie
+```
+
+
+**wbudowana funkcja aov()**
+
+
+
+### Odpowiedniki rangowe dwóch powyższych testów: 
+#Odpowiednik rangowy ANOVA(jednoczynnikiowa analiza wariacji) → Test Kruskala-Wallisa  
+
+Test ten jest nieparametryczną alternatywą jednoczynnikowej analizy wariancji. Za pomocą tego testu porównujemy rozkłady kilku (k) zmiennych. Test ten, podobnie jak test U Manna-Whitneya, opiera się na rangach obserwacji. Jeśli wszystkie próby pochodzą z jednej populacji, spodziewamy się, że średnie rangi w poszczególnych grupach będą zbliżone.   
+
+**Hipotezy**:
+
+H0:F1=⋯=FkH0:F1=⋯=Fk (wszystkie próby pochodzą z jednej populacji) 
+
+H1:∃i,j∈{1,…,k} Fi≠FjH1:∃i,j∈{1,…,k} Fi≠Fj (nie wszystkie próby pochodzą z tych samych populacji). 
+
+
+**Założenia**:
+
+-Próby są niezależne 
+
+-Zmienna zależna jest mierzona na skali co najmniej porządkowej 
+
+-Rozkład zmiennej w każdej grupie ma podobny kształt 
+
+-Brak normalności rozkładu danych (w przeciwieństwie do ANOVA) 
+
+-Wariancje w grupach mogą się różnić 
+
+#### Kod w R
+```{r}
+library(readxl)
+library(FSA)
+
+dane <- read_excel("C:\\Users\\Julia\\Downloads\\dane_do analizy (2).xlsx")
+# Sprawdzenie struktury danych
+str(dane)
+
+# Usunięcie nadmiarowych spacji i poprawienie nazwy kolumny
+colnames(dane)[colnames(dane) == "M4. Miejsce zamieszkania"] <- "Miejsce_zamieszkania"
+
+colnames(dane)[colnames(dane) == "M1. Wiek"] <- "Wiek"
+
+# Sprawdzamy teraz nazwy kolumn
+colnames(dane)
+
+# Przekształcenie zmiennej grupującej na factor
+dane$Miejsce_zamieszkania <- as.factor(dane$Miejsce_zamieszkania)
+
+# Usunięcie brakujących danych
+dane <- dane[!is.na(dane$Wiek) & !is.na(dane$Miejsce_zamieszkania), ]
+
+
+
+###Test Kruskalla-Walissa 
+# Wykonanie testu Kruskala-Wallisa (porównanie wieku w różnych grupach)
+kruskal_result <- kruskal.test(Wiek ~ Miejsce_zamieszkania, data = dane)
+
+kruskal_df <- data.frame(
+  statistic = kruskal_result$statistic,
+  p_value = kruskal_result$p.value,
+  df = kruskal_result$parameter
+)
+
+#wynik testu Kruskala-Wallisa jest istotny
+dunnTest(Wiek ~ Miejsce_zamieszkania,
+         data = dane,
+         method = "bonferroni")
+
+
+dunn_result <- dunnTest(Wiek ~ Miejsce_zamieszkania, data = dane, method = "bonferroni")
+
+dunn_df <- data.frame(
+  comparison = rownames(dunn_result$comparisons),
+  Z = dunn_result$comparisons$Z,
+  p_unadj = dunn_result$comparisons$P.unadj,
+  p_adj = dunn_result$comparisons$P.adj
+)
+
+# Wyświetlenie wyników Kruskala-Wallisa i Dunn'a
+print("Wyniki testu Kruskala-Wallisa:")
+print(kruskal_df)
+
+print("Wyniki testu Dunn'a:")
+print(dunn_df)
+
+
+#p.adj<0,05 dla 1i 3-w tych podpunktach występują istotne różnice
+
+
+```
+
+
+**użyto wbudowanej funkcji kruskal.test()**
+
+
+
+###Odpowiednik rangowy testu równości dwóch średnich → Test U Manna-Whitneya (dla prób niezależnych) 
+Test ten jest odpowiednikiem klasycznego testu t-Studenta dla prób niepowiązanych. Miarą tendencji centralnej dla tego testu jest nie średnia jak w przypadków testów t, a mediana. 
+
+
+**Hipotezy**:
+
+H0:F1=F2H0:F1=F2 (próby pochodzą z jednej populacji) 
+
+H1:F1≠F2H1:F1≠F2 (próby pochodzą z różnych populacji)
+
+
+**Założenia**:
+
+-Próby są niezależne(Obserwacje w jednej grupie nie mogą wpływać na wartości w drugiej grupie) 
+
+-Zmienna zależna jest mierzona na skali co najmniej porządkowej 
+
+-Rozkłady w obu grupach mają ten sam kształt (opcjonalnie, jeśli rozkłady są podobne, test porównuje mediany grup) 
+
+-Dane nie muszą być normalnie rozkładowe 
+
+-Skale pomiarowe w obu grupach muszą być zgodne 
+
+#### Kod w R
+```{r}
+library(readxl)
+library(FSA)
+
+dane <- read_excel("C:\\Users\\Julia\\Downloads\\dane_do analizy (2).xlsx")
+# Sprawdzenie struktury danych
+str(dane)
+
+# Usunięcie nadmiarowych spacji i poprawienie nazwy kolumny
+colnames(dane)[colnames(dane) == "M4. Miejsce zamieszkania"] <- "Miejsce_zamieszkania"
+
+colnames(dane)[colnames(dane) == "M1. Wiek"] <- "Wiek"
+
+# Sprawdzamy teraz nazwy kolumn
+colnames(dane)
+
+# Przekształcenie zmiennej grupującej na factor
+dane$Miejsce_zamieszkania <- as.factor(dane$Miejsce_zamieszkania)
+
+# Usunięcie brakujących danych
+dane <- dane[!is.na(dane$Wiek) & !is.na(dane$Miejsce_zamieszkania), ]
+
+
+###Test U Manna-Whitneya
+# Wybieramy dwie grupy, które chcemy porównać 
+dane_subset <- dane[dane$Miejsce_zamieszkania %in% c("1. Wieś - miasto do 20 tys. mieszkańców", "3. Miasto powyżej 100 tys. mieszkańców"), ]
+
+#porównujemy dwie grupy: "Wieś - miasto do 20 tys. mieszkańców" i "Miasto powyżej 100 tys."
+drug_data <- data.frame(
+  Wiek = dane_subset$Wiek,
+  Miejsce_zamieszkania = dane_subset$Miejsce_zamieszkania  #zmienna grupująca
+)
+
+# Wykonanie testu U Manna-Whitneya
+result_umw <- wilcox.test(Wiek ~ Miejsce_zamieszkania, data = drug_data)
+
+# Wyświetlenie wyników testu U Manna-Whitneya
+print(result_umw)
+
+#roznice miedzy grupami da istotne statysycznie
+
+
+```
+
+
+** użyto wbudowanej funkcji wilcox.test()**
+
+
+####Test Tuckeya  
+Test Tukeya to jeden z najczęściej używanych testów do porównywania par średnich. Można go wykorzystać w przypadku różnej liczebności prób. Jest on oparty na rozkładzie nazywanym „statystyką rozstępu studentyzowanego”. Poziom błędu doświadczenia dla wszystkich porównań parami pozostaje na poziomie błędu dla zbioru, co oznacza, że jeżeli założono dla testu ANOVA poziom istotności statystycznej α0,05, to taki sam poziom istotności statystycznej będzie użyty podczas wszystkich porównań pomiędzy parami (próbkami). Procedurę tą stosuje się w sytuacji, w której jest spełnione założenie o równości wariancji w próbach. 
+
+
+
+**Hipotezy**:
+
+(H0): µ1 = µ2 = µ3 = … = µk  (średnie są równe dla każdej grupy) 
+
+(H1): co najmniej jedna średnia różni się od pozostałych 
+
+
+**Założenia**:
+
+-Normaloność rozkładu 
+
+-Jednorodność wariancji 
+
+-Niezależność obserwacji(brak zależności miedzy obserwacjami w każdej grupie oraz między samymi grupami) 
+
+-Test równości wielu średnich służy do określenia, czy istnieją istotne różnice między grupami, natomiast test Tukeya przeprowadza się po nim w celu zidentyfikowania, między którymi konkretnie grupami te różnice występują. 
+
+ 
+
+#### Kod w R
+```{r}
+library(readxl)
+library(FSA)
+
+dane <- read_excel("C:\\Users\\Julia\\Downloads\\dane_do analizy (2).xlsx")
+# Sprawdzenie struktury danych
+str(dane)
+
+# Usunięcie nadmiarowych spacji i poprawienie nazwy kolumny
+colnames(dane)[colnames(dane) == "M4. Miejsce zamieszkania"] <- "Miejsce_zamieszkania"
+
+colnames(dane)[colnames(dane) == "M1. Wiek"] <- "Wiek"
+
+# Sprawdzamy teraz nazwy kolumn
+colnames(dane)
+
+# Przekształcenie zmiennej grupującej na factor
+dane$Miejsce_zamieszkania <- as.factor(dane$Miejsce_zamieszkania)
+
+# Usunięcie brakujących danych
+dane <- dane[!is.na(dane$Wiek) & !is.na(dane$Miejsce_zamieszkania), ]
+
+
+
+###Test Tuckeya
+
+
+# Dopasowanie modelu ANOVA
+anova_model <- aov(Wiek ~ Miejsce_zamieszkania, data = dane)
+
+# Wynik ANOVA
+summary(anova_model)
+#wynik jest istotny staytsycznie bo p-value=3.77e-10
+
+# Test Tuckeya, jeśli ANOVA jest istotna
+TukeyHSD(anova_model, conf.level = 0.95)
+
+
+
+#"Miasto od 20 tys. do 100 tys." a "Wieś" oraz między "Miasto powyżej 100 tys." a "Wieś". Natomiast nie ma istotnej
+#różnicy między "Miasto powyżej 100 tys." a "Miasto od 20 tys. do 100 tys.".
+
+```
+
+
+** użyto wbudowanej funkcji aov() i TukeyHSD()**
