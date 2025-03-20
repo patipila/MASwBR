@@ -58,7 +58,6 @@ Test χ2 bazuje na porównaniu ze sobą wartości obserwowanych (otrzymanych w b
   - x: tabela kontyngencji lub wektory zmiennych.
 
 
-
 ```{r}
 tablica <- table(dane$`M3. Poziom wykształcenia`, dane$`M5. Sytuacja zawodowa`)
 test_chi2 <- chisq.test(tablica)
@@ -311,41 +310,33 @@ Analiza wariancji (ANOVA) to test statystyczny służący do sprawdzania, czy is
 
 **Hipotezy**:
 
-H0 :μ1 =μ2 =⋯=μk   
+$$H_0: \mu_1 = \mu_2 = \dots = \mu_k$$
 
-H1 :∃ i,j takie, z˙e μi ≠ μj
-
+$$H_1: \exists \ i, j \text{ takie, że } \mu_i \neq \mu_j$$
 
 
 **Założenia**:
 
--Normaloność rozkładu 
+- Normaloność rozkładu 
 
--Jednorodność wariancji 
+- Jednorodność wariancji 
 
--Niezależność obserwacji(brak zależności miedzy obserwacjami w każdej grupie) 
+- Niezależność obserwacji(brak zależności miedzy obserwacjami w każdej grupie) 
 
 #### Kod w R
 ```{r}
 library(FSA)
-
-# Sprawdzenie struktury danych
-str(dane)
 
 # Usunięcie nadmiarowych spacji i poprawienie nazwy kolumny
 colnames(dane)[colnames(dane) == "M4. Miejsce zamieszkania"] <- "Miejsce_zamieszkania"
 
 colnames(dane)[colnames(dane) == "M1. Wiek"] <- "Wiek"
 
-# Sprawdzamy teraz nazwy kolumn
-colnames(dane)
-
 # Przekształcenie zmiennej grupującej na factor
 dane$Miejsce_zamieszkania <- as.factor(dane$Miejsce_zamieszkania)
 
 # Usunięcie brakujących danych
 dane <- dane[!is.na(dane$Wiek) & !is.na(dane$Miejsce_zamieszkania), ]
-
 
 
 ###Test równości wielu średnich
@@ -371,44 +362,24 @@ Test ten jest nieparametryczną alternatywą jednoczynnikowej analizy wariancji.
 
 **Hipotezy**:
 
-H0:F1=⋯=FkH0:F1=⋯=Fk (wszystkie próby pochodzą z jednej populacji) 
+$$H_0: F_1 = \dots = F_k \quad \text{(wszystkie próby pochodzą z jednej populacji)}$$
 
-H1:∃i,j∈{1,…,k} Fi≠FjH1:∃i,j∈{1,…,k} Fi≠Fj (nie wszystkie próby pochodzą z tych samych populacji). 
-
+$$H_1: \exists \ i, j \in \{1, \dots, k\} \text{ takie, że } F_i \neq F_j \quad \text{(nie wszystkie próby pochodzą z tych samych populacji)}$$
 
 **Założenia**:
 
--Próby są niezależne 
+- Próby są niezależne 
 
--Zmienna zależna jest mierzona na skali co najmniej porządkowej 
+- Zmienna zależna jest mierzona na skali co najmniej porządkowej 
 
--Rozkład zmiennej w każdej grupie ma podobny kształt 
+- Rozkład zmiennej w każdej grupie ma podobny kształt 
 
--Brak normalności rozkładu danych (w przeciwieństwie do ANOVA) 
+- Brak normalności rozkładu danych (w przeciwieństwie do ANOVA) 
 
--Wariancje w grupach mogą się różnić 
+- Wariancje w grupach mogą się różnić 
 
 #### Kod w R
 ```{r}
-# Sprawdzenie struktury danych
-str(dane)
-
-# Usunięcie nadmiarowych spacji i poprawienie nazwy kolumny
-colnames(dane)[colnames(dane) == "M4. Miejsce zamieszkania"] <- "Miejsce_zamieszkania"
-
-colnames(dane)[colnames(dane) == "M1. Wiek"] <- "Wiek"
-
-# Sprawdzamy teraz nazwy kolumn
-colnames(dane)
-
-# Przekształcenie zmiennej grupującej na factor
-dane$Miejsce_zamieszkania <- as.factor(dane$Miejsce_zamieszkania)
-
-# Usunięcie brakujących danych
-dane <- dane[!is.na(dane$Wiek) & !is.na(dane$Miejsce_zamieszkania), ]
-
-
-
 ###Test Kruskalla-Walissa 
 # Wykonanie testu Kruskala-Wallisa (porównanie wieku w różnych grupach)
 kruskal_result <- kruskal.test(Wiek ~ Miejsce_zamieszkania, data = dane)
@@ -452,41 +423,37 @@ print(dunn_df)
 
 
 
-###Odpowiednik rangowy testu równości dwóch średnich → Test U Manna-Whitneya (dla prób niezależnych) 
+### Odpowiednik rangowy testu równości dwóch średnich → Test U Manna-Whitneya (dla prób niezależnych) 
+
 Test ten jest odpowiednikiem klasycznego testu t-Studenta dla prób niepowiązanych. Miarą tendencji centralnej dla tego testu jest nie średnia jak w przypadków testów t, a mediana. 
 
 
 **Hipotezy**:
 
-H0:F1=F2H0:F1=F2 (próby pochodzą z jednej populacji) 
+$$H_0: F_1 = F_2 \quad \text{(próby pochodzą z jednej populacji)}$$
 
-H1:F1≠F2H1:F1≠F2 (próby pochodzą z różnych populacji)
+$$H_1: F_1 \neq F_2 \quad \text{(próby pochodzą z różnych populacji)}$$
 
 
 **Założenia**:
 
--Próby są niezależne(Obserwacje w jednej grupie nie mogą wpływać na wartości w drugiej grupie) 
+- Próby są niezależne(Obserwacje w jednej grupie nie mogą wpływać na wartości w drugiej grupie) 
 
--Zmienna zależna jest mierzona na skali co najmniej porządkowej 
+- Zmienna zależna jest mierzona na skali co najmniej porządkowej 
 
--Rozkłady w obu grupach mają ten sam kształt (opcjonalnie, jeśli rozkłady są podobne, test porównuje mediany grup) 
+- Rozkłady w obu grupach mają ten sam kształt (opcjonalnie, jeśli rozkłady są podobne, test porównuje mediany grup) 
 
--Dane nie muszą być normalnie rozkładowe 
+- Dane nie muszą być normalnie rozkładowe 
 
--Skale pomiarowe w obu grupach muszą być zgodne 
+- Skale pomiarowe w obu grupach muszą być zgodne 
 
 #### Kod w R
 ```{r}
-# Sprawdzenie struktury danych
-str(dane)
 
 # Usunięcie nadmiarowych spacji i poprawienie nazwy kolumny
 colnames(dane)[colnames(dane) == "M4. Miejsce zamieszkania"] <- "Miejsce_zamieszkania"
 
 colnames(dane)[colnames(dane) == "M1. Wiek"] <- "Wiek"
-
-# Sprawdzamy teraz nazwy kolumn
-colnames(dane)
 
 # Przekształcenie zmiennej grupującej na factor
 dane$Miejsce_zamieszkania <- as.factor(dane$Miejsce_zamieszkania)
@@ -534,13 +501,13 @@ Test Tukeya to jeden z najczęściej używanych testów do porównywania par śr
 
 **Założenia**:
 
--Normaloność rozkładu 
+- Normaloność rozkładu 
 
--Jednorodność wariancji 
+- Jednorodność wariancji 
 
--Niezależność obserwacji(brak zależności miedzy obserwacjami w każdej grupie oraz między samymi grupami) 
+- Niezależność obserwacji(brak zależności miedzy obserwacjami w każdej grupie oraz między samymi grupami) 
 
--Test równości wielu średnich służy do określenia, czy istnieją istotne różnice między grupami, natomiast test Tukeya przeprowadza się po nim w celu zidentyfikowania, między którymi konkretnie grupami te różnice występują. 
+- Test równości wielu średnich służy do określenia, czy istnieją istotne różnice między grupami, natomiast test Tukeya przeprowadza się po nim w celu zidentyfikowania, między którymi konkretnie grupami te różnice występują. 
 
  
 
@@ -586,7 +553,7 @@ TukeyHSD(anova_model, conf.level = 0.95)
 ```
 
 
-** użyto wbudowanej funkcji aov() i TukeyHSD()**
+**użyto wbudowanej funkcji aov() i TukeyHSD()**
 
 ### Test równości proporcji
 
