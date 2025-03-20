@@ -13,14 +13,12 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE,warning = FALSE,message = FALSE)
-XD
 ```
 
 ## Dane
 
 ```{r}
 dane <- readxl::read_excel("dane_do analizy.xlsx", sheet = "Arkusz1")
-colnames(dane)
 dane$`M3. Poziom wykształcenia` <- factor(dane$`M3. Poziom wykształcenia`, 
                                           levels = c("1. Podstawowe (szkoła podstawowa, gimnazjum)", "2. Zawodowe", "3. Średnie", "4. Wyższe zawodowe (licencjat)", "5. Wyższe (magisterium lub wyżej)"),
                                           ordered = TRUE)
@@ -142,7 +140,7 @@ print(ks_test)
 ```
 
 
-## Test Kołmogorowa-Smirnowa dla dwóch rozkładów
+### Test Kołmogorowa-Smirnowa dla dwóch rozkładów
 
 Test Kołmogorowa-Smirnowa dla dwóch rozkładów pozwala na ocenę, czy dwie próbki pochodzą z tej samej populacji pod względem ich rozkładu. Test opiera się na największej różnicy między dystrybuantami empirycznymi dwóch próbek.
 
@@ -175,4 +173,135 @@ ks_two_samples <- ks.test(dane$`M1. Wiek`[dane$`M2. Płeć` == "1. Mężczyzna"]
                           dane$`M1. Wiek`[dane$`M2. Płeć` == "2. Kobieta"])
 print(ks_two_samples)
 ```
+
+### Test równości 2 wariancji
+
+W tym teście za hipotezę zerową stawiamy stwierdzenie, że wariancje w dwóch populacjach są równe. Wobec hipotezy alternatywnej, że jedna z wariancji jest większa. Korzystamy ze statystyki:
+
+F z \( n_1 - 1 \) i \( n_2 - 1 \) stopniami swobody.
+
+**Hipotezy**:
+
+Dla testu dwustronnego:
+
+- \( H_0: \sigma_1^2 = \sigma_2^2 \) (wariancje w obu populacjach są równe)  
+- \( H_A: \sigma_1^2 \neq \sigma_2^2 \) (wariancje w obu populacjach są różne)  
+
+Dla testu jednostronnego (prawostronnego):
+
+- \( H_0: \sigma_1^2 = \sigma_2^2 \)  
+- \( H_A: \sigma_1^2 > \sigma_2^2 \) (wariancja w pierwszej populacji jest większa od wariancji w drugiej)  
+
+Dla testu jednostronnego (lewostronnego):
+
+- \( H_0: \sigma_1^2 = \sigma_2^2 \)  
+- \( H_A: \sigma_1^2 < \sigma_2^2 \) (wariancja w pierwszej populacji jest mniejsza od wariancji w drugiej)
+gdzie:
+
+- \( \sigma_1^2 \) – wariancja pierwszej populacji,
+- \( \sigma_2^2 \) – wariancja drugiej populacji.
+
+**Założenia**:
+
+* Rozkład normalny
+
+#### Kod w R
+
+**var.test**
+* Biblioteka: stats (wbudowana w R)
+* Parametry:
+  
+  - formula: formuła określająca jaką zmienną chcemy przeanalizować w odniesieniu do poszczególnej zmiennej.
+  - data: ramka danych.
+
+
+```{r}
+res.ftest <- var.test(`M1. Wiek` ~ `M2. Płeć`, data = dane)
+res.ftest
+```
+
+### Test równości wielu wariancji
+
+Aby przetestować równość wielu wariancji w różnych populacjach, można skorzystać z **testu Bartletta**. Korzystamy ze statystyki **chi-kwadrat** o \( k-1 \) stopniach swobody.
+
+**Hipotezy**:
+
+- \( H_0: \sigma_1^2 = \sigma_2^2 = \dots = \sigma_k^2 \) (wszystkie populacje mają tę samą wariancję)
+- \( H_A: \exists \sigma_i^2 \neq \sigma_j^2 \) (co najmniej jedna populacja ma inną wariancję)
+
+Gdzie:
+
+
+- \( k \) – liczba grup,
+- \( \sigma_i^2 \) – wariancja \( i \)-tej populacji. 
+
+
+**Założenia**:
+
+- Rozkład normalny
+
+#### Kod w R
+
+**bartlett.test**
+* Biblioteka: stats (wbudowana w R)
+* Parametry:
+  
+  - formula: formuła za pomocą której wybieramy zmienną ze skali ilorazowej do analizy wariancji wielu populacji w zależności od innej zmiennej
+  - data: ramka danych.
+
+
+```{r}
+bartl <- bartlett.test(`M1. Wiek` ~ `M3. Poziom wykształcenia`, data = dane)
+bartl
+```
+
+
+### Test równości 2 średnich
+
+Za pomocą tego testu weryfikujemy hipotezę o równości wartości przeciętnych w dwóch populacjach. W przypadku, gdy nie znamy odchyleń standardowych i zakładamy, że odchylenia są takie same, korzystamy ze statystyki t-studenta. W przypadku, gdy znamy odchylenia standardowe, korzystamy ze statystyki u. oraz gdy nie znamy odchyleń standardowych i nie zakładamy, że są one podobne. 
+
+**Hipotezy**:
+
+Dla testu dwustronnego:
+
+- \( H_0: \mu_1 = \mu_2 \) (średnie w obu populacjach są równe)
+- \( H_A: \mu_1 \neq \mu_2 \) (średnie w obu populacjach są różne)
+
+Dla testu jednostronnego (prawostronnego):
+
+- \( H_0: \mu_1 = \mu_2 \)
+- \( H_A: \mu_1 > \mu_2 \) (średnia w pierwszej populacji jest większa od średniej w drugiej)
+
+Dla testu jednostronnego (lewostronnego):
+
+- \( H_0: \mu_1 = \mu_2 \)
+- \( H_A: \mu_1 < \mu_2 \) (średnia w pierwszej populacji jest mniejsza od średniej w drugiej)
+
+Gdzie:
+
+- \( \mu_1 \) – średnia w pierwszej populacji,
+- \( \mu_2 \) – średnia w drugiej populacji.
+
+**Założenia**:
+
+* Rozkład normalny w przypadku małych prób oraz gdy zakładamy że odchylenia są takie same 
+* Wariancje w obu populacjach są takie same (w przypadku założenia o podobnych odchyleniach) 
+* Liczebność prób wynosi przynajmniej 30 (w przypadku nieznania odchyleń) 
+
+#### Kod w R
+
+**t.test**
+* Biblioteka: stats (wbudowana w R)
+* Parametry:
+  
+  - formula: formuła określająca jaką zmienną chcemy przeanalizować w odniesieniu do poszczególnej zmiennej
+  - data: ramka danych.
+  
+Kod w przypadku gdy zakładamy że wariancja jest taka sama w podgrupach
+
+```{r}
+tt <- t.test(`M1. Wiek` ~ `M2. Płeć`, data = dane)
+tt
+```
+
 
