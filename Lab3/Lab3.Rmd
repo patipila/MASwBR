@@ -1,0 +1,62 @@
+---
+title: "Patycja Piła"
+author: "Grupa 2"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: 
+      collapsed: true  
+      smooth_scroll: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,warning = FALSE,message = FALSE)
+```
+
+## Dane
+
+Kolumny zawierające średnie mają w nazwie `mean` i oznaczenie jaki zakres pytań obejmują. Więc jeśli nazwa kolumny to **mean_1_3** oznacza ona, że jest to średnia z pytań 1,2 i 3.
+
+```{r}
+dane <- readxl::read_excel("dane_do analizy.xlsx")
+```
+
+## Test Niezależności
+
+
+```{r}
+i_cols <- paste0("i", 1:21)
+
+mean_cols <- grep("mean", names(dane), value = TRUE)
+
+# Funkcja do testu chi-kwadrat
+chi2_results <- lapply(c(mean_cols, i_cols), function(col) {
+  test <- chisq.test(table(dane$pokolenie, dane[[col]]))
+  p_value <- test$p.value
+  decision <- ifelse(p_value < 0.05, "Odrzucamy H0", "Nie odrzucamy H0")
+  return(c(Variable = col, p_value = round(p_value, 4), Decision = decision))
+})
+
+results_df <- as.data.frame(do.call(rbind, chi2_results))
+knitr::kable(results_df, align = "c", caption = "Wyniki testu chi-kwadrat")
+```
+
+## Test Kruskala-Wallisa
+
+Ten test nie wymaga normalności rozkładu, więc go tego nie sprawdzamy.
+
+```{r}
+kruskal_results <- lapply(c(mean_cols, i_cols), function(col) {
+  test <- kruskal.test(dane[[col]] ~ dane$pokolenie)
+  p_value <- test$p.value
+  decision <- ifelse(p_value < 0.05, "Odrzucamy H0", "Nie odrzucamy H0")
+  return(c(Variable = col, p_value = round(p_value, 4), Decision = decision))
+})
+
+kruskal_df <- as.data.frame(do.call(rbind, kruskal_results))
+
+knitr::kable(kruskal_df, align = "c", caption = "Wyniki testu Kruskala-Wallisa")
+
+```
