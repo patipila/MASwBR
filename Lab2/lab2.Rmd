@@ -1,0 +1,711 @@
+---
+title: "Lab2"
+author: "Grupa 2"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: 
+      collapsed: true  
+      smooth_scroll: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,warning = FALSE,message = FALSE)
+```
+
+## Dane
+
+```{r}
+dane <- readxl::read_excel("dane_do analizy.xlsx", sheet = "Arkusz1")
+dane$`M3. Poziom wykształcenia` <- factor(dane$`M3. Poziom wykształcenia`, 
+                                          levels = c("1. Podstawowe (szkoła podstawowa, gimnazjum)", "2. Zawodowe", "3. Średnie", "4. Wyższe zawodowe (licencjat)", "5. Wyższe (magisterium lub wyżej)"),
+                                          ordered = TRUE)
+```
+
+## Testy
+
+### Test niezależności chi-kwadrat
+
+Test niezależności χ2 wykonuje się w celu zbadania związku pomiędzy dwoma zmiennymi nominalnymi X i Y. 
+
+Test chi-kwadrat ocenia zależność między dwiema zmiennymi kategorycznymi poprzez porównanie obserwowanych i oczekiwanych częstości. Im większa wartość statystyki chi-kwadrat, tym większa różnica między zmiennymi.
+
+Test V Cramera jest miarą siły związku między zmiennymi kategorycznymi, przyjmując wartości od 0 (brak związku) do 1 (pełna zależność).
+
+**Hipotezy**:
+
+$$
+H_0: \text{Zmienne są niezależne.} \\
+H_A: \text{Zmienne nie są niezależne.}
+$$
+
+**Założenia**:
+
+* Dane są w postaci tabeli kontyngencji.
+
+* Test chi-kwadrat jest testem przybliżonym (podobnie jak test z dla średnich lub proporcji), wymaga więc – poza standardowym założeniem losowości i reprezentatywności próby – odpowiedniej wielkości próby. Najczęściej podaje się regułę, że minimalna liczebność oczekiwana w pojedynczej komórce wynosi 5.
+
+Test χ2 bazuje na porównaniu ze sobą wartości obserwowanych (otrzymanych w badaniu) a wartości teoretycznych (obliczonych przy założeniu, że pomiędzy zmiennymi nie ma żadnego związku). Duże różnice wskazują na istnienie zależności pomiędzy zmiennymi.
+
+#### Kod w R:
+
+**chisq.test()**
+
+* Biblioteka: stats (wbudowana w R)
+* Parametry:
+  - x: tabela kontyngencji lub wektory zmiennych.
+
+
+```{r}
+tablica <- table(dane$`M3. Poziom wykształcenia`, dane$`M5. Sytuacja zawodowa`)
+test_chi2 <- chisq.test(tablica)
+
+# Wyniki testu
+print(test_chi2)
+
+cramer_v <- function(x) {
+  sqrt(chisq.test(x)$statistic / (nrow(x) * (min(dim(x)) - 1)))
+}
+
+
+# Oblicz V Cramera
+v_cramer <- cramer_v(tablica)
+cat("V Cramera:", round(v_cramer, 3))
+```
+
+### Testy zgodności z rozkładem normalnym
+
+#### Test Shapiro-Wilka
+
+**Hipotezy**:
+
+Test Shapiro-Wilko jest uznawany za najlepszy test do sprawdzenia normalności rozkładu zmiennej losowej. Głównym atutem tego testu jest jego duża moc.
+
+$$
+H_0: \text{Rozkład badanej cechy jest rozkładem normalnym} \\
+H_A: \text{Rozkład badanej cechy nie jest rozkładem normalnym}
+$$
+
+**Założenia**:
+
+Test ten powinno stosować się przy mniejszych próbach, choć istnieje rozbieżność dotycząca granicy oddzielające małą próbę od dużej. Jako jedną z granic podaje się N > 100 (Bedyńska, Cypryańska, 2012), choć symulacje komputerowe (Razali, Yap, 2011) wskazują że test Shapiro-Wilka jest lepszy (ma większą moc) do prób o wielkości rzędu 2000. 
+
+#### Kod w R:
+
+**shapiro.test()**
+
+* Biblioteka: stats (wbudowana w R)
+* Parametry:
+  - x: wektor danych numerycznych.
+
+```{r}
+shapiro_test <- shapiro.test(dane$`M1. Wiek`)
+print(shapiro_test)
+```
+
+#### Test Kołmogorowa-Smirnowa
+
+Test Kołmogorowa-Smirnowa, dla jednej próby, do oceny zgodności rozkładu z rozkładem normalnym wykorzystuje maksymalną wartość różnicy między dystrybuantą z próby, a założoną dystrybuantą. Jeżeli wartość prawdopodobieństwa testowego jest mniejsza od przyjętego poziomu istotności, to hipotezę, że badany rozkład jest zgodny z normalnym należy odrzucić
+
+**Hipotezy**:
+
+$$
+H_0: \text{Rozkład badanej cechy jest rozkładem normalnym} \\
+H_A: \text{Rozkład badanej cechy nie jest rozkładem normalnym}
+$$
+
+**Założenia**:
+
+* Może być stosowany do dużych próbek.
+* Wrażliwy na wartości odstające.
+
+#### Kod w R:
+
+**ks.test()**
+
+* Biblioteka: stats (wbudowana w R)
+* Parametry:
+  - x: dane numeryczne.
+  - y: rozkład teoretyczny (np. "pnorm" dla normalnego).
+  - mean, sd: parametry rozkładu teoretycznego (np. średnia i odchyleń standardowych).
+
+
+```{r}
+ks_test <- ks.test(dane$`M1. Wiek`, "pnorm", mean = mean(dane$`M1. Wiek`), 
+                   sd = sd(dane$`M1. Wiek`))
+print(ks_test)
+```
+
+
+### Test Kołmogorowa-Smirnowa dla dwóch rozkładów
+
+Test Kołmogorowa-Smirnowa dla dwóch rozkładów pozwala na ocenę, czy dwie próbki pochodzą z tej samej populacji pod względem ich rozkładu. Test opiera się na największej różnicy między dystrybuantami empirycznymi dwóch próbek.
+
+**Hipoteza**:
+
+$$
+H_0: \text{Oba rozkłady są takie same.} \\
+H_A: \text{Oba rozkłady różnią się.}
+$$
+
+**Założenia**:
+
+* Dane powinny być na skali porządkowej lub wyższej.
+
+W przypadku małych próbek może mieć ograniczoną moc.
+
+#### Kod w R:
+
+**ks.test**
+
+* Biblioteka: stats (wbudowana w R)
+* Parametry:
+  
+  - x: dane numeryczne.
+  - y: druga próbka.
+
+
+```{r}
+ks_two_samples <- ks.test(dane$`M1. Wiek`[dane$`M2. Płeć` == "1. Mężczyzna"], 
+                          dane$`M1. Wiek`[dane$`M2. Płeć` == "2. Kobieta"])
+print(ks_two_samples)
+```
+
+### Test równości 2 wariancji
+
+W tym teście za hipotezę zerową stawiamy stwierdzenie, że wariancje w dwóch populacjach są równe. Wobec hipotezy alternatywnej, że jedna z wariancji jest większa. Korzystamy ze statystyki:
+
+F z \( n_1 - 1 \) i \( n_2 - 1 \) stopniami swobody.
+
+**Hipotezy**:
+
+Dla testu dwustronnego:
+
+- \( H_0: \sigma_1^2 = \sigma_2^2 \) (wariancje w obu populacjach są równe)  
+- \( H_A: \sigma_1^2 \neq \sigma_2^2 \) (wariancje w obu populacjach są różne)  
+
+Dla testu jednostronnego (prawostronnego):
+
+- \( H_0: \sigma_1^2 = \sigma_2^2 \)  
+- \( H_A: \sigma_1^2 > \sigma_2^2 \) (wariancja w pierwszej populacji jest większa od wariancji w drugiej)  
+
+Dla testu jednostronnego (lewostronnego):
+
+- \( H_0: \sigma_1^2 = \sigma_2^2 \)  
+- \( H_A: \sigma_1^2 < \sigma_2^2 \) (wariancja w pierwszej populacji jest mniejsza od wariancji w drugiej)
+gdzie:
+
+- \( \sigma_1^2 \) – wariancja pierwszej populacji,
+- \( \sigma_2^2 \) – wariancja drugiej populacji.
+
+**Założenia**:
+
+* Rozkład normalny
+
+#### Kod w R
+
+**var.test**
+* Biblioteka: stats (wbudowana w R)
+* Parametry:
+  
+  - formula: formuła określająca jaką zmienną chcemy przeanalizować w odniesieniu do poszczególnej zmiennej.
+  - data: ramka danych.
+
+
+```{r}
+res.ftest <- var.test(`M1. Wiek` ~ `M2. Płeć`, data = dane)
+res.ftest
+```
+
+### Test równości wielu wariancji
+
+Aby przetestować równość wielu wariancji w różnych populacjach, można skorzystać z **testu Bartletta**. Korzystamy ze statystyki **chi-kwadrat** o \( k-1 \) stopniach swobody.
+
+**Hipotezy**:
+
+- \( H_0: \sigma_1^2 = \sigma_2^2 = \dots = \sigma_k^2 \) (wszystkie populacje mają tę samą wariancję)
+- \( H_A: \exists \sigma_i^2 \neq \sigma_j^2 \) (co najmniej jedna populacja ma inną wariancję)
+
+Gdzie:
+
+
+- \( k \) – liczba grup,
+- \( \sigma_i^2 \) – wariancja \( i \)-tej populacji. 
+
+
+**Założenia**:
+
+- Rozkład normalny
+
+#### Kod w R
+
+**bartlett.test**
+* Biblioteka: stats (wbudowana w R)
+* Parametry:
+  
+  - formula: formuła za pomocą której wybieramy zmienną ze skali ilorazowej do analizy wariancji wielu populacji w zależności od innej zmiennej
+  - data: ramka danych.
+
+
+```{r}
+bartl <- bartlett.test(`M1. Wiek` ~ `M3. Poziom wykształcenia`, data = dane)
+bartl
+```
+
+
+### Test równości 2 średnich
+
+Za pomocą tego testu weryfikujemy hipotezę o równości wartości przeciętnych w dwóch populacjach. W przypadku, gdy nie znamy odchyleń standardowych i zakładamy, że odchylenia są takie same, korzystamy ze statystyki t-studenta. W przypadku, gdy znamy odchylenia standardowe, korzystamy ze statystyki u. oraz gdy nie znamy odchyleń standardowych i nie zakładamy, że są one podobne. 
+
+**Hipotezy**:
+
+Dla testu dwustronnego:
+
+- \( H_0: \mu_1 = \mu_2 \) (średnie w obu populacjach są równe)
+- \( H_A: \mu_1 \neq \mu_2 \) (średnie w obu populacjach są różne)
+
+Dla testu jednostronnego (prawostronnego):
+
+- \( H_0: \mu_1 = \mu_2 \)
+- \( H_A: \mu_1 > \mu_2 \) (średnia w pierwszej populacji jest większa od średniej w drugiej)
+
+Dla testu jednostronnego (lewostronnego):
+
+- \( H_0: \mu_1 = \mu_2 \)
+- \( H_A: \mu_1 < \mu_2 \) (średnia w pierwszej populacji jest mniejsza od średniej w drugiej)
+
+Gdzie:
+
+- \( \mu_1 \) – średnia w pierwszej populacji,
+- \( \mu_2 \) – średnia w drugiej populacji.
+
+**Założenia**:
+
+* Rozkład normalny w przypadku małych prób oraz gdy zakładamy że odchylenia są takie same 
+* Wariancje w obu populacjach są takie same (w przypadku założenia o podobnych odchyleniach) 
+* Liczebność prób wynosi przynajmniej 30 (w przypadku nieznania odchyleń) 
+
+#### Kod w R
+
+**t.test**
+* Biblioteka: stats (wbudowana w R)
+* Parametry:
+  
+  - formula: formuła określająca jaką zmienną chcemy przeanalizować w odniesieniu do poszczególnej zmiennej
+  - data: ramka danych.
+  
+Kod w przypadku gdy zakładamy że wariancja jest taka sama w podgrupach
+
+```{r}
+tt <- t.test(`M1. Wiek` ~ `M2. Płeć`, data = dane)
+tt
+```
+
+### Test równości wielu średnich(analizą wariancji (ANOVA)) 
+
+Analiza wariancji (ANOVA) to test statystyczny służący do sprawdzania, czy istnieją istotne różnice między średnimi więcej niż dwóch grup. Jest stosowany, gdy chcemy ocenić wpływ jednego lub więcej czynników na zmienną zależną, a jego wynik wskazuje, czy co najmniej jedna grupa różni się istotnie od pozostałych. Jeśli ANOVA wykaże różnice, do identyfikacji konkretnych grup stosuje się testy post-hoc, np. test Tukeya. 
+
+
+**Hipotezy**:
+
+$$H_0: \mu_1 = \mu_2 = \dots = \mu_k$$
+
+$$H_1: \exists \ i, j \text{ takie, że } \mu_i \neq \mu_j$$
+
+
+**Założenia**:
+
+- Normaloność rozkładu 
+
+- Jednorodność wariancji 
+
+- Niezależność obserwacji(brak zależności miedzy obserwacjami w każdej grupie) 
+
+#### Kod w R
+```{r}
+library(FSA)
+
+# Usunięcie nadmiarowych spacji i poprawienie nazwy kolumny
+colnames(dane)[colnames(dane) == "M4. Miejsce zamieszkania"] <- "Miejsce_zamieszkania"
+
+colnames(dane)[colnames(dane) == "M1. Wiek"] <- "Wiek"
+
+# Przekształcenie zmiennej grupującej na factor
+dane$Miejsce_zamieszkania <- as.factor(dane$Miejsce_zamieszkania)
+
+# Usunięcie brakujących danych
+dane <- dane[!is.na(dane$Wiek) & !is.na(dane$Miejsce_zamieszkania), ]
+
+
+###Test równości wielu średnich
+# Wykonanie testu ANOVA (porównanie średnich w różnych grupach)
+anova_model <- aov(Wiek ~ Miejsce_zamieszkania, data = dane)
+
+# Wynik testu ANOVA
+summary(anova_model)
+
+
+#srednie w grupach sa istotne satystycznie
+```
+
+
+**wbudowana funkcja aov()**
+
+
+
+### Odpowiedniki rangowe dwóch powyższych testów: 
+#Odpowiednik rangowy ANOVA(jednoczynnikiowa analiza wariacji) → Test Kruskala-Wallisa  
+
+Test ten jest nieparametryczną alternatywą jednoczynnikowej analizy wariancji. Za pomocą tego testu porównujemy rozkłady kilku (k) zmiennych. Test ten, podobnie jak test U Manna-Whitneya, opiera się na rangach obserwacji. Jeśli wszystkie próby pochodzą z jednej populacji, spodziewamy się, że średnie rangi w poszczególnych grupach będą zbliżone.   
+
+**Hipotezy**:
+
+$$H_0: F_1 = \dots = F_k \quad \text{(wszystkie próby pochodzą z jednej populacji)}$$
+
+$$H_1: \exists \ i, j \in \{1, \dots, k\} \text{ takie, że } F_i \neq F_j \quad \text{(nie wszystkie próby pochodzą z tych samych populacji)}$$
+
+**Założenia**:
+
+- Próby są niezależne 
+
+- Zmienna zależna jest mierzona na skali co najmniej porządkowej 
+
+- Rozkład zmiennej w każdej grupie ma podobny kształt 
+
+- Brak normalności rozkładu danych (w przeciwieństwie do ANOVA) 
+
+- Wariancje w grupach mogą się różnić 
+
+#### Kod w R
+```{r}
+###Test Kruskalla-Walissa 
+# Wykonanie testu Kruskala-Wallisa (porównanie wieku w różnych grupach)
+kruskal_result <- kruskal.test(Wiek ~ Miejsce_zamieszkania, data = dane)
+
+kruskal_df <- data.frame(
+  statistic = kruskal_result$statistic,
+  p_value = kruskal_result$p.value,
+  df = kruskal_result$parameter
+)
+
+#wynik testu Kruskala-Wallisa jest istotny
+dunnTest(Wiek ~ Miejsce_zamieszkania,
+         data = dane,
+         method = "bonferroni")
+
+
+dunn_result <- dunnTest(Wiek ~ Miejsce_zamieszkania, data = dane, method = "bonferroni")
+
+dunn_df <- data.frame(
+  comparison = rownames(dunn_result$comparisons),
+  Z = dunn_result$comparisons$Z,
+  p_unadj = dunn_result$comparisons$P.unadj,
+  p_adj = dunn_result$comparisons$P.adj
+)
+
+# Wyświetlenie wyników Kruskala-Wallisa i Dunn'a
+print("Wyniki testu Kruskala-Wallisa:")
+print(kruskal_df)
+
+print("Wyniki testu Dunn'a:")
+print(dunn_df)
+
+
+#p.adj<0,05 dla 1i 3-w tych podpunktach występują istotne różnice
+
+
+```
+
+
+**użyto wbudowanej funkcji kruskal.test()**
+
+
+
+### Odpowiednik rangowy testu równości dwóch średnich → Test U Manna-Whitneya (dla prób niezależnych) 
+
+Test ten jest odpowiednikiem klasycznego testu t-Studenta dla prób niepowiązanych. Miarą tendencji centralnej dla tego testu jest nie średnia jak w przypadków testów t, a mediana. 
+
+
+**Hipotezy**:
+
+$$H_0: F_1 = F_2 \quad \text{(próby pochodzą z jednej populacji)}$$
+
+$$H_1: F_1 \neq F_2 \quad \text{(próby pochodzą z różnych populacji)}$$
+
+
+**Założenia**:
+
+- Próby są niezależne(Obserwacje w jednej grupie nie mogą wpływać na wartości w drugiej grupie) 
+
+- Zmienna zależna jest mierzona na skali co najmniej porządkowej 
+
+- Rozkłady w obu grupach mają ten sam kształt (opcjonalnie, jeśli rozkłady są podobne, test porównuje mediany grup) 
+
+- Dane nie muszą być normalnie rozkładowe 
+
+- Skale pomiarowe w obu grupach muszą być zgodne 
+
+#### Kod w R
+```{r}
+
+# Usunięcie nadmiarowych spacji i poprawienie nazwy kolumny
+colnames(dane)[colnames(dane) == "M4. Miejsce zamieszkania"] <- "Miejsce_zamieszkania"
+
+colnames(dane)[colnames(dane) == "M1. Wiek"] <- "Wiek"
+
+# Przekształcenie zmiennej grupującej na factor
+dane$Miejsce_zamieszkania <- as.factor(dane$Miejsce_zamieszkania)
+
+# Usunięcie brakujących danych
+dane <- dane[!is.na(dane$Wiek) & !is.na(dane$Miejsce_zamieszkania), ]
+
+
+###Test U Manna-Whitneya
+# Wybieramy dwie grupy, które chcemy porównać 
+dane_subset <- dane[dane$Miejsce_zamieszkania %in% c("1. Wieś - miasto do 20 tys. mieszkańców", "3. Miasto powyżej 100 tys. mieszkańców"), ]
+
+#porównujemy dwie grupy: "Wieś - miasto do 20 tys. mieszkańców" i "Miasto powyżej 100 tys."
+drug_data <- data.frame(
+  Wiek = dane_subset$Wiek,
+  Miejsce_zamieszkania = dane_subset$Miejsce_zamieszkania  #zmienna grupująca
+)
+
+# Wykonanie testu U Manna-Whitneya
+result_umw <- wilcox.test(Wiek ~ Miejsce_zamieszkania, data = drug_data)
+
+# Wyświetlenie wyników testu U Manna-Whitneya
+print(result_umw)
+
+#roznice miedzy grupami da istotne statysycznie
+
+
+```
+
+
+** użyto wbudowanej funkcji wilcox.test()**
+
+
+####Test Tuckeya  
+Test Tukeya to jeden z najczęściej używanych testów do porównywania par średnich. Można go wykorzystać w przypadku różnej liczebności prób. Jest on oparty na rozkładzie nazywanym „statystyką rozstępu studentyzowanego”. Poziom błędu doświadczenia dla wszystkich porównań parami pozostaje na poziomie błędu dla zbioru, co oznacza, że jeżeli założono dla testu ANOVA poziom istotności statystycznej α0,05, to taki sam poziom istotności statystycznej będzie użyty podczas wszystkich porównań pomiędzy parami (próbkami). Procedurę tą stosuje się w sytuacji, w której jest spełnione założenie o równości wariancji w próbach. 
+
+
+
+**Hipotezy**:
+
+(H0): µ1 = µ2 = µ3 = … = µk  (średnie są równe dla każdej grupy) 
+
+(H1): co najmniej jedna średnia różni się od pozostałych 
+
+
+**Założenia**:
+
+- Normaloność rozkładu 
+
+- Jednorodność wariancji 
+
+- Niezależność obserwacji(brak zależności miedzy obserwacjami w każdej grupie oraz między samymi grupami) 
+
+- Test równości wielu średnich służy do określenia, czy istnieją istotne różnice między grupami, natomiast test Tukeya przeprowadza się po nim w celu zidentyfikowania, między którymi konkretnie grupami te różnice występują. 
+
+ 
+
+#### Kod w R
+```{r}
+# Sprawdzenie struktury danych
+str(dane)
+
+# Usunięcie nadmiarowych spacji i poprawienie nazwy kolumny
+colnames(dane)[colnames(dane) == "M4. Miejsce zamieszkania"] <- "Miejsce_zamieszkania"
+
+colnames(dane)[colnames(dane) == "M1. Wiek"] <- "Wiek"
+
+# Sprawdzamy teraz nazwy kolumn
+colnames(dane)
+
+# Przekształcenie zmiennej grupującej na factor
+dane$Miejsce_zamieszkania <- as.factor(dane$Miejsce_zamieszkania)
+
+# Usunięcie brakujących danych
+dane <- dane[!is.na(dane$Wiek) & !is.na(dane$Miejsce_zamieszkania), ]
+
+
+
+###Test Tuckeya
+
+
+# Dopasowanie modelu ANOVA
+anova_model <- aov(Wiek ~ Miejsce_zamieszkania, data = dane)
+
+# Wynik ANOVA
+summary(anova_model)
+#wynik jest istotny staytsycznie bo p-value=3.77e-10
+
+# Test Tuckeya, jeśli ANOVA jest istotna
+TukeyHSD(anova_model, conf.level = 0.95)
+
+
+
+#"Miasto od 20 tys. do 100 tys." a "Wieś" oraz między "Miasto powyżej 100 tys." a "Wieś". Natomiast nie ma istotnej
+#różnicy między "Miasto powyżej 100 tys." a "Miasto od 20 tys. do 100 tys.".
+
+```
+
+
+**użyto wbudowanej funkcji aov() i TukeyHSD()**
+
+### Test równości proporcji
+
+Test dla dwóch proporcji stosujemy w sytuacjach, gdy mamy 2 niezależne próby o liczności n1 i n2, w których możemy uzyskać 2 możliwe wyniki badanej cechy (jeden z nich to wynik wyróżniony o liczności m1 - w pierwszej próbie i m2 - w drugiej próbie). Dla prób tych możemy wyznaczyć proporcje p1 i p2. Test ten służy do weryfikacji hipotezy, że wyróżnione proporcje są sobie równe. 
+
+**Hipotezy**:
+  
+- \( H_0: p_1 = p_2 \)
+- \( H_A: p_1 \neq p_2 \)
+
+
+**Założenia**:
+  
+* pomiar na skali nominalnej,
+
+* model niezależny,  
+
+* duża liczność. 
+
+#### Kod w R
+
+**prop.test**
+
+* Biblioteka: stats (wbudowana w R)
+* Parametry:
+  - x: wektor proporcji
+  - n: wektor liczby 
+  - alternative: ciąg znaków określający hipotezę alternatywną
+
+```{r}
+data_subset <- dane[, c("M2. Płeć", "P1. Częstotliwość podróży (dotyczy podróży z przynajmniej jednym noclegiem)")]
+
+table_data <- table(data_subset$`M2. Płeć`, data_subset$`P1. Częstotliwość podróży (dotyczy podróży z przynajmniej jednym noclegiem)`)
+
+n1 <- sum(table_data[1, ])  # liczba obserwacji dla pierwszej płci
+x1 <- table_data[1, 1]      # liczba podróżujących w pierwszej grupie
+n2 <- sum(table_data[2, ])  # liczba obserwacji dla drugiej płci
+x2 <- table_data[2, 1]      # liczba podróżujących w drugiej grupie
+
+phat1 <- x1 / n1
+phat2 <- x2 / n2
+
+
+alt <- "≠"
+alttext <- if (alt == ">") {"greater"} else if (alt == "<") {"less"} else {"two.sided"}
+
+
+test <- prop.test(c(x1, x2), c(n1, n2), alternative = alttext, correct = FALSE)
+```
+
+### Test istotności korelacji Pearsona, Spearmana, Kendalla 
+
+Test do sprawdzania istotności współczynnika korelacji liniowej **Pearsona** służy do weryfikacji hipotezy o braku zależności liniowej pomiędzy badanymi cechami populacji i opiera się na współczynniku korelacji liniowej Pearsona wyliczonym dla próby. Im wartość współczynnika rp jest bliższa 0, tym słabszą zależnością związane są badane cechy. 
+
+**Hipotezy**:
+  
+- \( H_0: R_p = 0 \)
+- \( H_A: R_p \neq 0 \)
+
+Gdzie:
+  
+- \( R_p \) – współczynnik korelacji Pearsona w populacji.
+
+**Założenia**:
+  
+* pomiar na skali interwałowej,
+
+* normalność rozkładu badanych cech w populacji lub normalność reszt modelu.
+
+#### Kod w R
+
+**cor.test**
+
+* Biblioteka: stats (wbudowana w R)
+* Parametry:
+  - x: dane 1
+  - y: dane 2
+  - method: ciąg znaków wskazujący, który współczynnik korelacji ma zostać użyty w teście
+  - alternative: ciąg znaków określający hipotezę alternatywną
+
+```{r}
+kolumna1 <- "Wiek"
+kolumna2 <- "3. Podróżuję, aby przeżyć przygodę"
+df_clean <- na.omit(dane[, c(kolumna1, kolumna2)])
+cor.test(df_clean[[kolumna1]], df_clean[[kolumna2]], method = "pearson")
+
+```
+
+Test do sprawdzania istotności współczynnika korelacji **Spearmana** służy do weryfikacji hipotezy o braku zależności pomiędzy badanymi cechami populacji i opiera się na współczynniku korelacji rangowej Spearmana wyliczonym dla próby. Im wartość współczynnika Spearmana rs jest bliższa 0, tym słabszą zależnością związane są badane cechy.  
+
+**Hipotezy**:
+  
+- \( H_0: R_s = 0 \)
+- \( H_A: R_s \neq 0 \)
+
+Gdzie:
+  
+- \( R_s \) – współczynnik korelacji Spearmana  w populacji.
+
+**Założenia**:
+  
+* pomiar na skali porządkowej lub interwałowej.
+
+#### Kod w R
+
+**cor.test**
+
+* Biblioteka: stats (wbudowana w R)
+* Parametry:
+  - x: dane 1
+  - y: dane 2
+  - method: ciąg znaków wskazujący, który współczynnik korelacji ma zostać użyty w teście
+  - alternative: ciąg znaków określający hipotezę alternatywną
+
+```{r}
+kolumna1 <- "Wiek"
+kolumna2 <- "10. Podróżuję, aby uczyć się i poszerzać swoją wiedzę"
+df_clean <- na.omit(dane[, c(kolumna1, kolumna2)])
+test <- cor.test(df_clean[[kolumna1]], df_clean[[kolumna2]], method = "spearman")
+```
+
+Test do sprawdzania istotności współczynnika korelacji **Kendalla** służy do weryfikacji hipotezy o braku zależności pomiędzy badanymi cechami populacji i opiera się na współczynniku korelacji Kendalla wyliczonym dla próby. Im wartość współczynnika jest bliższa 0, tym słabszą zależnością związane są badane cechy.   
+
+**Hipotezy**:
+  
+- \( H_0: t = 0 \)
+- \( H_A: t \neq 0 \)
+
+Gdzie:
+  
+- \( t \) – współczynnik korelacji Kendalla w populacji.
+
+**Założenia**:
+  
+* pomiar na skali porządkowej lub interwałowej,
+
+* małe próbki.
+
+#### Kod w R
+
+**cor.test**
+
+* Biblioteka: stats (wbudowana w R)
+* Parametry:
+  - x: dane 1
+  - y: dane 2
+  - method: ciąg znaków wskazujący, który współczynnik korelacji ma zostać użyty w teście
+  - alternative: ciąg znaków określający hipotezę alternatywną
+
+```{r}
+kolumna1 <- "Wiek"
+kolumna2 <- "10. Podróżuję, aby uczyć się i poszerzać swoją wiedzę"
+df_clean <- na.omit(dane[, c(kolumna1, kolumna2)])
+test <- cor.test(df_clean[[kolumna1]], df_clean[[kolumna2]], method = "kendall")
+```
